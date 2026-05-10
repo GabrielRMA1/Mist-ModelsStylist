@@ -20,7 +20,6 @@ export async function agendamentoRoutes(app: FastifyInstance) {
             data: {
               type: "string",
               description: "Data e horário no formato ISO.",
-              example: "2026-05-20T14:00:00.000Z",
             },
             tipoServico: {
               type: "string",
