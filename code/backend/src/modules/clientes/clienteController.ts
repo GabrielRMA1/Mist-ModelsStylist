@@ -1,27 +1,19 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { ClienteService } from "./clienteService.js";
 
-// Tipagem do body da rota POST /clientes
 interface CriarClienteBody {
   nome: string;
   email: string;
   telefone: string;
 }
-
-// Tipagem do body da rota PUT /clientes/:id
 interface AtualizarClienteBody {
   nome?: string;
   email?: string;
   telefone?: string;
 }
-
-// Tipagem dos params das rotas com :id
 interface ClienteParams {
   id: string;
 }
-
-// Controller lida com request e reply.
-// Ele não acessa banco diretamente.
 export class ClienteController {
   private clienteService: ClienteService;
 
@@ -45,7 +37,6 @@ export class ClienteController {
     }
   };
 
-  // GET /clientes
   listarTodos = async (_request: FastifyRequest, reply: FastifyReply) => {
     const clientes = await this.clienteService.listarTodos();
 
@@ -104,7 +95,6 @@ export class ClienteController {
     }
   };
 
-  // DELETE /clientes/:id
   deletar = async (
     request: FastifyRequest<{ Params: ClienteParams }>,
     reply: FastifyReply
