@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Cliente {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  email        String        @unique
+  telefone     String?
+  agendamentos Agendamento[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Estilista {
+  id             Int           @id @default(autoincrement())
+  nome           String
+  email          String        @unique
+  telefone       String?
+  especialidade  String
+  descricao      String?
+  agendamentos   Agendamento[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Agendamento {
+  id              Int                 @id @default(autoincrement())
+
+  clienteId       Int
+  estilistaId     Int
+
+  cliente         Cliente             @relation(fields: [clienteId], references: [id])
+  estilista       Estilista           @relation(fields: [estilistaId], references: [id])
+
+  data            DateTime
+  tipoServico     TipoServico
+  descricao       String?
+  status          StatusAgendamento   @default(PENDENTE)
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+enum StatusAgendamento {
+  PENDENTE
+  ACEITO
+  RECUSADO
+  CANCELADO
+  CONCLUIDO
+}
+
+enum TipoServico {
+  CONSULTORIA_ESTILO
+  MONTAGEM_LOOK
+  ROUPA_SOB_MEDIDA
+  ACOMPANHAMENTO_EVENTO
+  OUTRO
+}

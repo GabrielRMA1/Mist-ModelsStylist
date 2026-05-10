@@ -1,22 +1,31 @@
 {
-  "name": "backend",
+  "name": "mist-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend REST do projeto Mist - Models Stylist",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@types/node": "^25.6.2",
+    "prisma": "^7.8.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.7.0",
+    "@prisma/client": "^7.8.0",
+    "@scalar/fastify-api-reference": "^1.55.3",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
     "zod": "^4.4.3"
