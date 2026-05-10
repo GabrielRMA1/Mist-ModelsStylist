@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: mist-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: mist_user
+      POSTGRES_PASSWORD: mist_password
+      POSTGRES_DB: mist_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - mist_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  mist_postgres_data:
