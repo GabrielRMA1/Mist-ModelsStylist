@@ -17,6 +17,7 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^25.6.2",
+    "@types/pg": "^8.20.0",
     "prisma": "^7.8.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
@@ -24,10 +25,12 @@
   },
   "dependencies": {
     "@fastify/swagger": "^9.7.0",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@scalar/fastify-api-reference": "^1.55.3",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
+    "pg": "^8.20.0",
     "zod": "^4.4.3"
   }
 }
