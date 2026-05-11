@@ -21,7 +21,6 @@ export class ClienteController {
     this.clienteService = new ClienteService();
   }
 
-  // POST /clientes
   criar = async (
     request: FastifyRequest<{ Body: CriarClienteBody }>,
     reply: FastifyReply
@@ -43,7 +42,6 @@ export class ClienteController {
     return reply.status(200).send(clientes);
   };
 
-  // GET /clientes/:id
   buscarPorId = async (
     request: FastifyRequest<{ Params: ClienteParams }>,
     reply: FastifyReply
@@ -67,7 +65,6 @@ export class ClienteController {
     }
   };
 
-  // PUT /clientes/:id
   atualizar = async (
     request: FastifyRequest<{
       Params: ClienteParams;
