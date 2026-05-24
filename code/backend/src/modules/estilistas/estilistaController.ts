@@ -28,12 +28,10 @@ export class EstilistaController {
     this.estilistaService = new EstilistaService();
   }
 
-  criar = async (
-    request: FastifyRequest<{ Body: CriarEstilistaBody }>,
-    reply: FastifyReply
-  ) => {
+  criar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const estilista = await this.estilistaService.criar(request.body);
+      const body = request.body as CriarEstilistaBody;
+      const estilista = await this.estilistaService.criar(body);
 
       return reply.status(201).send(estilista);
     } catch (error) {
@@ -50,20 +48,18 @@ export class EstilistaController {
     return reply.status(200).send(estilistas);
   };
 
-  buscarPorId = async (
-    request: FastifyRequest<{ Params: EstilistaParams }>,
-    reply: FastifyReply
-  ) => {
+  buscarPorId = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as EstilistaParams;
+      const idNum = Number(id);
 
-      if (Number.isNaN(id)) {
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
-      const estilista = await this.estilistaService.buscarPorId(id);
+      const estilista = await this.estilistaService.buscarPorId(idNum);
 
       return reply.status(200).send(estilista);
     } catch (error) {
@@ -74,26 +70,19 @@ export class EstilistaController {
     }
   };
 
-  atualizar = async (
-    request: FastifyRequest<{
-      Params: EstilistaParams;
-      Body: AtualizarEstilistaBody;
-    }>,
-    reply: FastifyReply
-  ) => {
+  atualizar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as EstilistaParams;
+      const body = request.body as AtualizarEstilistaBody;
+      const idNum = Number(id);
 
-      if (Number.isNaN(id)) {
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
-      const estilista = await this.estilistaService.atualizar(
-        id,
-        request.body
-      );
+      const estilista = await this.estilistaService.atualizar(idNum, body);
 
       return reply.status(200).send(estilista);
     } catch (error) {
@@ -106,20 +95,18 @@ export class EstilistaController {
     }
   };
 
-  deletar = async (
-    request: FastifyRequest<{ Params: EstilistaParams }>,
-    reply: FastifyReply
-  ) => {
+  deletar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as EstilistaParams;
+      const idNum = Number(id);
 
-      if (Number.isNaN(id)) {
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
-      await this.estilistaService.deletar(id);
+      await this.estilistaService.deletar(idNum);
 
       return reply.status(204).send();
     } catch (error) {

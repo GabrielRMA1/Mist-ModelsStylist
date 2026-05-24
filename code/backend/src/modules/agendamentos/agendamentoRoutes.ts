@@ -8,8 +8,8 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.post(
     "/",
     {
+      preHandler: [authenticate],
       schema: {
-        preHandler: [authenticate],
         tags: ["Agendamentos"],
         summary: "Criar agendamento",
         description: "Cria uma nova solicitação de agendamento.",

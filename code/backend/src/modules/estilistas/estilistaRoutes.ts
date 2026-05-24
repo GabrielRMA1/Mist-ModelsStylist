@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { EstilistaController } from "./estilistaController.js";
+import { authenticate } from "../../middlewares/auth.js";
 
 export async function estilistaRoutes(app: FastifyInstance) {
   const estilistaController = new EstilistaController();
@@ -7,6 +8,7 @@ export async function estilistaRoutes(app: FastifyInstance) {
   app.post(
     "/",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Estilistas"],
         summary: "Criar estilista",
@@ -30,6 +32,7 @@ export async function estilistaRoutes(app: FastifyInstance) {
   app.get(
     "/",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Estilistas"],
         summary: "Listar estilistas",
@@ -42,6 +45,7 @@ export async function estilistaRoutes(app: FastifyInstance) {
   app.get(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Estilistas"],
         summary: "Buscar estilista por ID",
@@ -60,6 +64,7 @@ export async function estilistaRoutes(app: FastifyInstance) {
   app.put(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Estilistas"],
         summary: "Atualizar estilista",
@@ -88,6 +93,7 @@ export async function estilistaRoutes(app: FastifyInstance) {
   app.delete(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Estilistas"],
         summary: "Deletar estilista",

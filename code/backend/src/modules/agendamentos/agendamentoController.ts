@@ -1,6 +1,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { AgendamentoService } from "./agendamentoService.js";
-import { StatusAgendamento, TipoServico } from "../../generated/prisma/client.js";
+import {
+  StatusAgendamento,
+  TipoServico,
+} from "../../generated/prisma/client.js";
 
 interface CriarAgendamentoBody {
   clienteId: number;
@@ -33,20 +36,16 @@ export class AgendamentoController {
     this.agendamentoService = new AgendamentoService();
   }
 
-  criar = async (
-    request: FastifyRequest<{ Body: CriarAgendamentoBody }>,
-    reply: FastifyReply
-  ) => {
+  criar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const agendamento = await this.agendamentoService.criar(request.body);
+      const body = request.body as CriarAgendamentoBody;
+      const agendamento = await this.agendamentoService.criar(body);
 
       return reply.status(201).send(agendamento);
     } catch (error) {
       return reply.status(400).send({
         message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao criar agendamento.",
+          error instanceof Error ? error.message : "Erro ao criar agendamento.",
       });
     }
   };
@@ -57,12 +56,9 @@ export class AgendamentoController {
     return reply.status(200).send(agendamentos);
   };
 
-  buscarPorId = async (
-    request: FastifyRequest<{ Params: AgendamentoParams }>,
-    reply: FastifyReply
-  ) => {
+  buscarPorId = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as { id: number };
 
       if (Number.isNaN(id)) {
         return reply.status(400).send({
@@ -83,12 +79,9 @@ export class AgendamentoController {
     }
   };
 
-  listarPorCliente = async (
-    request: FastifyRequest<{ Params: ClienteParams }>,
-    reply: FastifyReply
-  ) => {
+  listarPorCliente = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const clienteId = Number(request.params.clienteId);
+      const { clienteId } = request.params as { clienteId: number };
 
       if (Number.isNaN(clienteId)) {
         return reply.status(400).send({
@@ -110,12 +103,9 @@ export class AgendamentoController {
     }
   };
 
-  listarPorEstilista = async (
-    request: FastifyRequest<{ Params: EstilistaParams }>,
-    reply: FastifyReply
-  ) => {
+  listarPorEstilista = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const estilistaId = Number(request.params.estilistaId);
+      const { estilistaId } = request.params as { estilistaId: number };
 
       if (Number.isNaN(estilistaId)) {
         return reply.status(400).send({
@@ -137,25 +127,22 @@ export class AgendamentoController {
     }
   };
 
-  atualizarStatus = async (
-    request: FastifyRequest<{
-      Params: AgendamentoParams;
-      Body: AtualizarStatusBody;
-    }>,
-    reply: FastifyReply
-  ) => {
+  atualizarStatus = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as { id: string };
+      const body = request.body as AtualizarStatusBody;
 
-      if (Number.isNaN(id)) {
+      const idNum = Number(id);
+
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
       const agendamento = await this.agendamentoService.atualizarStatus(
-        id,
-        request.body
+        idNum,
+        body,
       );
 
       return reply.status(200).send(agendamento);
@@ -169,12 +156,9 @@ export class AgendamentoController {
     }
   };
 
-  deletar = async (
-    request: FastifyRequest<{ Params: AgendamentoParams }>,
-    reply: FastifyReply
-  ) => {
+  deletar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as { id: number };
 
       if (Number.isNaN(id)) {
         return reply.status(400).send({

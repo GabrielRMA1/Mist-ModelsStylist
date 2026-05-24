@@ -6,14 +6,17 @@ interface CriarClienteBody {
   email: string;
   telefone: string;
 }
+
 interface AtualizarClienteBody {
   nome?: string;
   email?: string;
   telefone?: string;
 }
+
 interface ClienteParams {
   id: string;
 }
+
 export class ClienteController {
   private clienteService: ClienteService;
 
@@ -21,12 +24,10 @@ export class ClienteController {
     this.clienteService = new ClienteService();
   }
 
-  criar = async (
-    request: FastifyRequest<{ Body: CriarClienteBody }>,
-    reply: FastifyReply
-  ) => {
+  criar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const cliente = await this.clienteService.criar(request.body);
+      const body = request.body as CriarClienteBody;
+      const cliente = await this.clienteService.criar(body);
 
       return reply.status(201).send(cliente);
     } catch (error) {
@@ -42,20 +43,18 @@ export class ClienteController {
     return reply.status(200).send(clientes);
   };
 
-  buscarPorId = async (
-    request: FastifyRequest<{ Params: ClienteParams }>,
-    reply: FastifyReply
-  ) => {
+  buscarPorId = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as ClienteParams;
+      const idNum = Number(id);
 
-      if (Number.isNaN(id)) {
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
-      const cliente = await this.clienteService.buscarPorId(id);
+      const cliente = await this.clienteService.buscarPorId(idNum);
 
       return reply.status(200).send(cliente);
     } catch (error) {
@@ -65,23 +64,19 @@ export class ClienteController {
     }
   };
 
-  atualizar = async (
-    request: FastifyRequest<{
-      Params: ClienteParams;
-      Body: AtualizarClienteBody;
-    }>,
-    reply: FastifyReply
-  ) => {
+  atualizar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as ClienteParams;
+      const body = request.body as AtualizarClienteBody;
+      const idNum = Number(id);
 
-      if (Number.isNaN(id)) {
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
-      const cliente = await this.clienteService.atualizar(id, request.body);
+      const cliente = await this.clienteService.atualizar(idNum, body);
 
       return reply.status(200).send(cliente);
     } catch (error) {
@@ -92,20 +87,18 @@ export class ClienteController {
     }
   };
 
-  deletar = async (
-    request: FastifyRequest<{ Params: ClienteParams }>,
-    reply: FastifyReply
-  ) => {
+  deletar = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const id = Number(request.params.id);
+      const { id } = request.params as ClienteParams;
+      const idNum = Number(id);
 
-      if (Number.isNaN(id)) {
+      if (Number.isNaN(idNum)) {
         return reply.status(400).send({
           message: "ID inválido.",
         });
       }
 
-      await this.clienteService.deletar(id);
+      await this.clienteService.deletar(idNum);
 
       return reply.status(204).send();
     } catch (error) {

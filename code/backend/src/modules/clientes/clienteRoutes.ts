@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { ClienteController } from "./clienteController.js";
+import { authenticate } from "../../middlewares/auth.js";
 
 export async function clienteRoutes(app: FastifyInstance) {
   const clienteController = new ClienteController();
@@ -7,6 +8,7 @@ export async function clienteRoutes(app: FastifyInstance) {
   app.post(
     "/",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Clientes"],
         summary: "Criar cliente",
@@ -41,6 +43,7 @@ export async function clienteRoutes(app: FastifyInstance) {
   app.get(
     "/",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Clientes"],
         summary: "Listar clientes",
@@ -53,6 +56,7 @@ export async function clienteRoutes(app: FastifyInstance) {
   app.get(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Clientes"],
         summary: "Buscar cliente por ID",
@@ -71,6 +75,7 @@ export async function clienteRoutes(app: FastifyInstance) {
   app.put(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Clientes"],
         summary: "Atualizar cliente",
@@ -97,6 +102,7 @@ export async function clienteRoutes(app: FastifyInstance) {
   app.delete(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Clientes"],
         summary: "Deletar cliente",
