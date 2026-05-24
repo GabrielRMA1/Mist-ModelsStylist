@@ -1,14 +1,18 @@
 import Fastify from "fastify";
 import swagger from "@fastify/swagger";
+import fastifyCookie from '@fastify/cookie';
 import scalarApiReference from "@scalar/fastify-api-reference";
 
 import { clienteRoutes } from "./modules/clientes/clienteRoutes.js";
 import { estilistaRoutes } from "./modules/estilistas/estilistaRoutes.js";
 import { agendamentoRoutes } from "./modules/agendamentos/agendamentoRoutes.js";
+import { authRoutes } from "./modules/auth/authRoutes.js";
 
 export const app = Fastify({
-  logger: false,
+  logger: true,
 });
+
+app.register(fastifyCookie);
 
 await app.register(swagger, {
   openapi: {
@@ -65,3 +69,7 @@ await app.register(estilistaRoutes, {
 await app.register(agendamentoRoutes, {
   prefix: "/agendamentos",
 });
+
+await app.register(authRoutes, {
+  prefix: '/auth',
+})

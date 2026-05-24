@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { AgendamentoController } from "./agendamentoController.js";
+import { authenticate } from "../../middlewares/auth.js";
 
 export async function agendamentoRoutes(app: FastifyInstance) {
   const agendamentoController = new AgendamentoController();
@@ -8,6 +9,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
     "/",
     {
       schema: {
+        preHandler: [authenticate],
         tags: ["Agendamentos"],
         summary: "Criar agendamento",
         description: "Cria uma nova solicitação de agendamento.",
@@ -42,6 +44,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.get(
     "/",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Agendamentos"],
         summary: "Listar agendamentos",
@@ -54,6 +57,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.get(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Agendamentos"],
         summary: "Buscar agendamento por ID",
@@ -72,6 +76,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.get(
     "/cliente/:clienteId",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Agendamentos"],
         summary: "Listar agendamentos por cliente",
@@ -90,6 +95,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.get(
     "/estilista/:estilistaId",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Agendamentos"],
         summary: "Listar agendamentos por estilista",
@@ -108,6 +114,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.patch(
     "/:id/status",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Agendamentos"],
         summary: "Atualizar status do agendamento",
@@ -142,6 +149,7 @@ export async function agendamentoRoutes(app: FastifyInstance) {
   app.delete(
     "/:id",
     {
+      preHandler: [authenticate],
       schema: {
         tags: ["Agendamentos"],
         summary: "Deletar agendamento",

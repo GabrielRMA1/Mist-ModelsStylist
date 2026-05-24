@@ -12,46 +12,73 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  CLIENTE
+  ESTILISTA
+}
+
+model User {
+  id          Int         @id @default(autoincrement())
+
+  email       String      @unique
+  senha       String
+  role        UserRole
+
+  cliente     Cliente?
+  estilista   Estilista?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
 model Cliente {
-  id           Int           @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
+
   nome         String
-  email        String        @unique
   telefone     String?
+
+  userId       Int            @unique
+  user         User           @relation(fields: [userId], references: [id])
+
   agendamentos Agendamento[]
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model Estilista {
-  id             Int           @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
+
   nome           String
-  email          String        @unique
   telefone       String?
   especialidade  String
   descricao      String?
+
+  userId         Int            @unique
+  user           User           @relation(fields: [userId], references: [id])
+
   agendamentos   Agendamento[]
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Agendamento {
-  id              Int                 @id @default(autoincrement())
+  id              Int                  @id @default(autoincrement())
 
   clienteId       Int
   estilistaId     Int
 
-  cliente         Cliente             @relation(fields: [clienteId], references: [id])
-  estilista       Estilista           @relation(fields: [estilistaId], references: [id])
+  cliente         Cliente              @relation(fields: [clienteId], references: [id])
+  estilista       Estilista            @relation(fields: [estilistaId], references: [id])
 
   data            DateTime
   tipoServico     TipoServico
   descricao       String?
-  status          StatusAgendamento   @default(PENDENTE)
+  status          StatusAgendamento    @default(PENDENTE)
 
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 }
 
 enum StatusAgendamento {
