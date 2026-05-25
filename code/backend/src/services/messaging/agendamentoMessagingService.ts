@@ -47,7 +47,7 @@ export class AgendamentoMessagingService {
         }
       });
 
-      console.log(`📤 Status publicado: Agendamento ${data.agendamentoId} -> ${data.status}`);
+      console.log(`Status publicado: Agendamento ${data.agendamentoId} -> ${data.status}`);
     } catch (error) {
       console.error('Erro ao publicar atualização de status:', error);
       throw error;
