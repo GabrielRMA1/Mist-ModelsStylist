@@ -7,7 +7,13 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
-	
+	RABBITMQ_URL: z.string().url().startsWith("amqp://"),
+	RABBITMQ_HOST: z.string().default("localhost"),
+	RABBITMQ_PORT: z.coerce.number().default(5672),
+	RABBITMQ_USER: z.string().default("admin"),
+	RABBITMQ_PASS: z.string().default("admin"),
+	RABBITMQ_VHOST: z.string().default("/")
+
 });
 
 export const env = envSchema.parse(process.env);

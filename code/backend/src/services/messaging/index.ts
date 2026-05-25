@@ -1,0 +1,1 @@
+export { AgendamentoMessagingService } from './agendamentoMessagingService.js';

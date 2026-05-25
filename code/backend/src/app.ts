@@ -7,9 +7,10 @@ import { clienteRoutes } from "./modules/clientes/clienteRoutes.js";
 import { estilistaRoutes } from "./modules/estilistas/estilistaRoutes.js";
 import { agendamentoRoutes } from "./modules/agendamentos/agendamentoRoutes.js";
 import { authRoutes } from "./modules/auth/authRoutes.js";
+import { rabbitMQConfig } from "./config/rabbitmq/index.js";
 
 export const app = Fastify({
-  logger: true,
+  logger: false,
 });
 
 app.register(fastifyCookie);
@@ -51,10 +52,18 @@ await app.register(scalarApiReference, {
   },
 });
 
+try {
+  await rabbitMQConfig.connect();
+  app.log.info('RabbitMQ conectado com sucesso');
+} catch (error) {
+  app.log.error('Erro ao conectar ao RabbitMQ');
+}
+
 app.get("/health", async () => {
   return {
     status: "ok",
     message: "Mist API está funcionando.",
+    rabbitmq: rabbitMQConfig.getConnectionStatus() ? "conectado" : "desconectado",
   };
 });
 
@@ -72,4 +81,12 @@ await app.register(agendamentoRoutes, {
 
 await app.register(authRoutes, {
   prefix: '/auth',
-})
+});
+
+app.addHook('onClose', async () => {
+  try {
+    await rabbitMQConfig.close();
+  } catch (error) {
+    app.log.error('Erro ao fechar RabbitMQ');
+  }
+});

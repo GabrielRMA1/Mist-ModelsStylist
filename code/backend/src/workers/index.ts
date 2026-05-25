@@ -1,0 +1,1 @@
+export { AgendamentoWorker } from './agendamentoWorker.js';
