@@ -48,7 +48,7 @@ class RabbitMQConfig {
       maxPriority: 10,
     });
 
-    console.log("✅ Filas configuradas");
+    console.log("Filas configuradas");
   }
 
   getChannel(): Channel {
