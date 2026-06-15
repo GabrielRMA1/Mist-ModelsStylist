@@ -37,8 +37,10 @@ export class AuthService {
       role: data.role,
     });
 
+    let clienteOuEstilista: any = null;
+
     if (data.role === "CLIENTE") {
-      await authRepository.createCliente({
+      clienteOuEstilista = await authRepository.createCliente({
         nome: data.nome,
         ...(data.telefone && {
           telefone: data.telefone,
@@ -48,7 +50,7 @@ export class AuthService {
     }
 
     if (data.role === "ESTILISTA") {
-      await authRepository.createEstilista({
+      clienteOuEstilista = await authRepository.createEstilista({
         nome: data.nome,
 
         ...(data.telefone && {
@@ -85,6 +87,13 @@ export class AuthService {
 
     return {
       message: "Usuário criado com sucesso",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      profile: clienteOuEstilista,
     };
   }
 
@@ -125,8 +134,23 @@ export class AuthService {
       path: "/",
     });
 
+    // Buscar dados do cliente ou estilista
+    let profile = null;
+    if (user.role === "CLIENTE") {
+      profile = await authRepository.findClienteByUserId(user.id);
+    } else if (user.role === "ESTILISTA") {
+      profile = await authRepository.findEstilistaByUserId(user.id);
+    }
+
     return {
       message: "Login realizado com sucesso",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      profile,
     };
   }
 
