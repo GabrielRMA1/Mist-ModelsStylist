@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import swagger from "@fastify/swagger";
 import fastifyCookie from '@fastify/cookie';
 import scalarApiReference from "@scalar/fastify-api-reference";
+import cors from '@fastify/cors';
 
 import { clienteRoutes } from "./modules/clientes/clienteRoutes.js";
 import { estilistaRoutes } from "./modules/estilistas/estilistaRoutes.js";
@@ -14,6 +15,12 @@ export const app = Fastify({
 });
 
 app.register(fastifyCookie);
+
+await app.register(cors, {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
 
 await app.register(swagger, {
   openapi: {

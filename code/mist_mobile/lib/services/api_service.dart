@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3333';
+  static const String baseUrl = 'http://10.255.136.7:3333';
   static String? _token;
 
   static Future<void> loadToken() async {
@@ -27,6 +27,7 @@ class ApiService {
 
   static Future<dynamic> get(String endpoint) async {
     try {
+      print('TOKEN ATUAL: $_token');
       final response = await http.get(
         Uri.parse('$baseUrl$endpoint'),
         headers: {
@@ -41,8 +42,12 @@ class ApiService {
     }
   }
 
-  static Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
+  static Future<dynamic> post(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     try {
+      print('TOKEN ATUAL: $_token');
       final response = await http.post(
         Uri.parse('$baseUrl$endpoint'),
         headers: {
