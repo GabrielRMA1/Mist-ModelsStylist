@@ -2,15 +2,14 @@ import { prisma } from "../../database/prisma.js";
 
 interface CriarEstilistaData {
   nome: string;
-  email: string;
-  telefone: string;
+  telefone?: string;
   especialidade: string;
   descricao?: string;
+  userId: number;
 }
 
 interface AtualizarEstilistaData {
   nome?: string;
-  email?: string;
   telefone?: string;
   especialidade?: string;
   descricao?: string;
@@ -35,14 +34,6 @@ export class EstilistaRepository {
     return prisma.estilista.findUnique({
       where: {
         id,
-      },
-    });
-  }
-
-  async buscarPorEmail(email: string) {
-    return prisma.estilista.findUnique({
-      where: {
-        email,
       },
     });
   }

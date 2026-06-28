@@ -15,13 +15,13 @@ export async function estilistaRoutes(app: FastifyInstance) {
         description: "Cria um novo estilista no sistema.",
         body: {
           type: "object",
-          required: ["nome", "email", "telefone", "especialidade"],
+          required: ["nome", "especialidade", "userId"],
           properties: {
             nome: { type: "string" },
-            email: { type: "string", format: "email" },
             telefone: { type: "string" },
             especialidade: { type: "string" },
             descricao: { type: "string" },
+            userId: { type: "number" },
           },
         },
       },
@@ -79,7 +79,6 @@ export async function estilistaRoutes(app: FastifyInstance) {
           type: "object",
           properties: {
             nome: { type: "string" },
-            email: { type: "string", format: "email" },
             telefone: { type: "string" },
             especialidade: { type: "string" },
             descricao: { type: "string" },

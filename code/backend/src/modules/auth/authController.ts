@@ -54,9 +54,15 @@ export class AuthController {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
+    const profile = await authService.profile(
+      request.user.id,
+      request.user.role,
+    )
+
     return reply.send({
       authenticated: true,
       user: request.user,
+      profile,
     })
   }
 }

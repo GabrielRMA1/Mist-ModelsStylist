@@ -42,7 +42,7 @@ class ApiClient {
     Map<String, dynamic>? body,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final headers = await _headers();
+    final headers = await _headers(hasBody: body != null);
 
     final response = await _httpClient.send(
       http.Request(method, uri)
@@ -56,11 +56,11 @@ class ApiClient {
     return _handleResponse(streamedResponse);
   }
 
-  Future<Map<String, String>> _headers() async {
+  Future<Map<String, String>> _headers({required bool hasBody}) async {
     final cookie = await _cookieStorage.getCookie();
 
     return {
-      'Content-Type': 'application/json',
+      if (hasBody) 'Content-Type': 'application/json',
       if (cookie != null) 'Cookie': cookie,
     };
   }

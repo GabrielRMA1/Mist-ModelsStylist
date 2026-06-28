@@ -1,11 +1,53 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gold_button.dart';
+import 'client/client_home_screen.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
+import 'stylist/stylist_dashboard_screen.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  final _authService = AuthService();
+  bool _checkingSession = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final session = await _authService.checkAuth();
+
+    if (!mounted) return;
+
+    if (session != null) {
+      _goToHome(session);
+      return;
+    }
+
+    setState(() => _checkingSession = false);
+  }
+
+  void _goToHome(AuthSession session) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => session.role == 'ESTILISTA'
+            ? const StylistDashboardScreen()
+            : const ClientHomeScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,18 +109,25 @@ class SplashScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 40),
-                GoldButton(
-                  label: 'Entrar',
-                  onPressed: () => _goToLogin(context),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => _goToSignup(context),
-                  child: const Text(
-                    'Criar conta',
-                    style: TextStyle(color: Color(0xFF888888), fontSize: 13),
+                if (_checkingSession)
+                  const CircularProgressIndicator(color: AppColors.gold)
+                else ...[
+                  GoldButton(
+                    label: 'Entrar',
+                    onPressed: () => _goToLogin(context),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => _goToSignup(context),
+                    child: const Text(
+                      'Criar conta',
+                      style: TextStyle(
+                        color: Color(0xFF888888),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

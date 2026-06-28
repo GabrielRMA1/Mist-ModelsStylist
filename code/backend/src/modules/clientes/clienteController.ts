@@ -1,15 +1,15 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+
 import { ClienteService } from "./clienteService.js";
 
 interface CriarClienteBody {
   nome: string;
-  email: string;
-  telefone: string;
+  telefone?: string;
+  userId: number;
 }
 
 interface AtualizarClienteBody {
   nome?: string;
-  email?: string;
   telefone?: string;
 }
 
@@ -39,7 +39,6 @@ export class ClienteController {
 
   listarTodos = async (_request: FastifyRequest, reply: FastifyReply) => {
     const clientes = await this.clienteService.listarTodos();
-
     return reply.status(200).send(clientes);
   };
 
@@ -49,13 +48,10 @@ export class ClienteController {
       const idNum = Number(id);
 
       if (Number.isNaN(idNum)) {
-        return reply.status(400).send({
-          message: "ID inválido.",
-        });
+        return reply.status(400).send({ message: "ID invalido." });
       }
 
       const cliente = await this.clienteService.buscarPorId(idNum);
-
       return reply.status(200).send(cliente);
     } catch (error) {
       return reply.status(404).send({
@@ -71,18 +67,14 @@ export class ClienteController {
       const idNum = Number(id);
 
       if (Number.isNaN(idNum)) {
-        return reply.status(400).send({
-          message: "ID inválido.",
-        });
+        return reply.status(400).send({ message: "ID invalido." });
       }
 
       const cliente = await this.clienteService.atualizar(idNum, body);
-
       return reply.status(200).send(cliente);
     } catch (error) {
       return reply.status(400).send({
-        message:
-          error instanceof Error ? error.message : "Erro ao atualizar cliente.",
+        message: error instanceof Error ? error.message : "Erro ao atualizar cliente.",
       });
     }
   };
@@ -93,13 +85,10 @@ export class ClienteController {
       const idNum = Number(id);
 
       if (Number.isNaN(idNum)) {
-        return reply.status(400).send({
-          message: "ID inválido.",
-        });
+        return reply.status(400).send({ message: "ID invalido." });
       }
 
       await this.clienteService.deletar(idNum);
-
       return reply.status(204).send();
     } catch (error) {
       return reply.status(404).send({

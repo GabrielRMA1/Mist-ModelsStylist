@@ -15,11 +15,11 @@ export async function clienteRoutes(app: FastifyInstance) {
         description: "Cria um novo cliente no sistema.",
         body: {
           type: "object",
-          required: ["nome", "email", "telefone"],
+          required: ["nome", "userId"],
           properties: {
             nome: { type: "string" },
-            email: { type: "string", format: "email" },
             telefone: { type: "string" },
+            userId: { type: "number" },
           },
         },
         response: {
@@ -28,8 +28,8 @@ export async function clienteRoutes(app: FastifyInstance) {
             properties: {
               id: { type: "number" },
               nome: { type: "string" },
-              email: { type: "string" },
               telefone: { type: "string" },
+              userId: { type: "number" },
               createdAt: { type: "string" },
               updatedAt: { type: "string" },
             },
@@ -90,7 +90,6 @@ export async function clienteRoutes(app: FastifyInstance) {
           type: "object",
           properties: {
             nome: { type: "string" },
-            email: { type: "string", format: "email" },
             telefone: { type: "string" },
           },
         },

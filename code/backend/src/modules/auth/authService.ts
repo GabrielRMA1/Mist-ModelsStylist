@@ -161,4 +161,12 @@ export class AuthService {
       message: "Logout realizado com sucesso",
     };
   }
+
+  async profile(userId: number, role: "CLIENTE" | "ESTILISTA") {
+    if (role === "CLIENTE") {
+      return authRepository.findClienteByUserId(userId);
+    }
+
+    return authRepository.findEstilistaByUserId(userId);
+  }
 }

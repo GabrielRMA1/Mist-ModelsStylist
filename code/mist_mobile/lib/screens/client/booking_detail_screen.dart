@@ -2,16 +2,48 @@ import 'package:flutter/material.dart';
 
 import '../../models/booking.dart';
 import '../../models/booking_status.dart';
+import '../../services/agendamento_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/status_badge.dart';
 
-class BookingDetailScreen extends StatelessWidget {
+class BookingDetailScreen extends StatefulWidget {
   const BookingDetailScreen({super.key, required this.booking});
 
   final Booking booking;
 
   @override
+  State<BookingDetailScreen> createState() => _BookingDetailScreenState();
+}
+
+class _BookingDetailScreenState extends State<BookingDetailScreen> {
+  final _agendamentoService = AgendamentoService();
+  bool _isCanceling = false;
+
+  Future<void> _cancel() async {
+    setState(() => _isCanceling = true);
+
+    try {
+      await _agendamentoService.cancelar(widget.booking.id);
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: const Color(0xFFE53935),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isCanceling = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final booking = widget.booking;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -130,12 +162,14 @@ class BookingDetailScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: _isCanceling ? null : _cancel,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFE53935),
                     side: const BorderSide(color: Color(0xFFE53935)),
                   ),
-                  child: const Text('Cancelar solicitação'),
+                  child: Text(
+                    _isCanceling ? 'Cancelando...' : 'Cancelar solicitação',
+                  ),
                 ),
               ),
             ],

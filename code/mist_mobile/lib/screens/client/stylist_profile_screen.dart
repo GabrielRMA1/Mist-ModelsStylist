@@ -1,18 +1,54 @@
-﻿import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import 'package:flutter/material.dart';
+
 import '../../models/stylist.dart';
+import '../../services/favorite_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/gold_button.dart';
 import 'create_booking_screen.dart';
 
-class StylistProfileScreen extends StatelessWidget {
+class StylistProfileScreen extends StatefulWidget {
+  const StylistProfileScreen({super.key, required this.stylist});
+
   final Stylist stylist;
 
-  const StylistProfileScreen({super.key, required this.stylist});
+  @override
+  State<StylistProfileScreen> createState() => _StylistProfileScreenState();
+}
+
+class _StylistProfileScreenState extends State<StylistProfileScreen> {
+  final _favoriteService = FavoriteService();
+  late Future<bool> _isFavoriteFuture;
+
+  Stylist get stylist => widget.stylist;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavoriteFuture = _favoriteService.isFavorite(stylist.id);
+  }
+
+  Future<void> _toggleFavorite() async {
+    final isFavorite = await _favoriteService.toggleFavorite(stylist.id);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isFavoriteFuture = Future.value(isFavorite);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isFavorite
+              ? 'Estilista adicionado aos favoritos.'
+              : 'Estilista removido dos favoritos.',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isFavorite = stylist.isFavorite;
-
     return Scaffold(
       body: Column(
         children: [
@@ -27,7 +63,10 @@ class StylistProfileScreen extends StatelessWidget {
                     child: Text(
                       stylist.bio,
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.muted, height: 1.7),
+                        fontSize: 12,
+                        color: AppColors.muted,
+                        height: 1.7,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -36,26 +75,35 @@ class StylistProfileScreen extends StatelessWidget {
                     child: Column(
                       children: stylist.services
                           .map(
-                            (s) => Container(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8),
+                            (service) => Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
                               decoration: const BoxDecoration(
                                 border: Border(
-                                    bottom: BorderSide(
-                                        color: AppColors.border, width: 0.5)),
+                                  bottom: BorderSide(
+                                    color: AppColors.border,
+                                    width: 0.5,
+                                  ),
+                                ),
                               ),
                               child: Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(s['name']!,
-                                      style: const TextStyle(
-                                          fontSize: 12, color: AppColors.dark)),
-                                  Text(s['price']!,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.gold,
-                                          fontWeight: FontWeight.w500)),
+                                  Text(
+                                    service['name']!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.dark,
+                                    ),
+                                  ),
+                                  Text(
+                                    service['price']!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.gold,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -64,12 +112,19 @@ class StylistProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  GoldButton(
-                    label: isFavorite
-                        ? 'Remover dos Favoritos'
-                        : 'Adicionar aos Favoritos',
-                    onPressed: () {},
-                    outline: true,
+                  FutureBuilder<bool>(
+                    future: _isFavoriteFuture,
+                    builder: (context, snapshot) {
+                      final isFavorite = snapshot.data ?? stylist.isFavorite;
+
+                      return GoldButton(
+                        label: isFavorite
+                            ? 'Remover dos Favoritos'
+                            : 'Adicionar aos Favoritos',
+                        onPressed: _toggleFavorite,
+                        outline: true,
+                      );
+                    },
                   ),
                   const SizedBox(height: 10),
                   GoldButton(
@@ -77,8 +132,8 @@ class StylistProfileScreen extends StatelessWidget {
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) =>
-                              CreateBookingScreen(stylist: stylist)),
+                        builder: (_) => CreateBookingScreen(stylist: stylist),
+                      ),
                     ),
                   ),
                 ],
@@ -120,9 +175,10 @@ class StylistProfileScreen extends StatelessWidget {
                       child: Text(
                         stylist.initials,
                         style: const TextStyle(
-                            color: AppColors.gold,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500),
+                          color: AppColors.gold,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -131,27 +187,40 @@ class StylistProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(stylist.name,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500)),
+                        Text(
+                          stylist.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(stylist.specialty,
-                            style: const TextStyle(
-                                color: Color(0xFFAAAAAA), fontSize: 13)),
+                        Text(
+                          stylist.specialty,
+                          style: const TextStyle(
+                            color: Color(0xFFAAAAAA),
+                            fontSize: 13,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star,
-                                color: AppColors.gold, size: 14),
+                            const Icon(
+                              Icons.star,
+                              color: AppColors.gold,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              '${stylist.rating} · ${stylist.reviews} avaliações',
+                              stylist.rating == 0
+                                  ? 'Novo na plataforma'
+                                  : '${stylist.rating} · ${stylist.reviews} avaliações',
                               style: const TextStyle(
-                                  color: AppColors.gold,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500),
+                                color: AppColors.gold,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -169,10 +238,10 @@ class StylistProfileScreen extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.title, required this.child});
+
   final String title;
   final Widget child;
-
-  const _InfoCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -187,11 +256,14 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.dark)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.dark,
+            ),
+          ),
           const SizedBox(height: 8),
           child,
         ],

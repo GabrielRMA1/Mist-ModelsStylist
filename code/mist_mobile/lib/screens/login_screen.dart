@@ -125,7 +125,13 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Recuperação de senha em breve.'),
+                      ),
+                    );
+                  },
                   child: const Text(
                     'Esqueci minha senha',
                     style: TextStyle(fontSize: 12),

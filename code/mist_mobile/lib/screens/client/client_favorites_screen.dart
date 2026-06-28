@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../data/mock_data.dart';
 import '../../models/stylist.dart';
+import '../../services/estilista_service.dart';
+import '../../services/favorite_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/avatar_circle.dart';
 import 'stylist_profile_screen.dart';
@@ -14,32 +15,39 @@ class ClientFavoritesScreen extends StatefulWidget {
 }
 
 class _ClientFavoritesScreenState extends State<ClientFavoritesScreen> {
-  late List<int> _favoriteIds;
+  final _estilistaService = EstilistaService();
+  final _favoriteService = FavoriteService();
+
+  late Future<List<Stylist>> _favoritesFuture;
 
   @override
   void initState() {
     super.initState();
-    _favoriteIds = mockStylists
-        .where((stylist) => stylist.isFavorite)
-        .map((stylist) => stylist.id)
-        .toList();
+    _favoritesFuture = _loadFavorites();
   }
 
-  void _toggleFavorite(int id) {
+  Future<List<Stylist>> _loadFavorites() async {
+    final ids = await _favoriteService.getFavoriteStylistIds();
+    final stylists = await _estilistaService.listarTodos();
+    return stylists.where((stylist) => ids.contains(stylist.id)).toList();
+  }
+
+  Future<void> _toggleFavorite(int stylistId) async {
+    await _favoriteService.toggleFavorite(stylistId);
+
+    if (!mounted) return;
+
     setState(() {
-      if (_favoriteIds.contains(id)) {
-        _favoriteIds.remove(id);
-      } else {
-        _favoriteIds.add(id);
-      }
+      _favoritesFuture = _loadFavorites();
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Estilista removido dos favoritos.')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final favorites =
-        mockStylists.where((stylist) => _favoriteIds.contains(stylist.id)).toList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Favoritos'),
@@ -48,26 +56,60 @@ class _ClientFavoritesScreenState extends State<ClientFavoritesScreen> {
           icon: const Icon(Icons.arrow_back_ios),
         ),
       ),
-      body: favorites.isEmpty
-          ? const _EmptyFavorites()
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: favorites.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, index) {
-                final stylist = favorites[index];
-                return _FavoriteCard(
-                  stylist: stylist,
-                  onTap: () => Navigator.push(
+      body: FutureBuilder<List<Stylist>>(
+        future: _favoritesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  snapshot.error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                ),
+              ),
+            );
+          }
+
+          final favorites = snapshot.data ?? [];
+
+          if (favorites.isEmpty) {
+            return const _EmptyFavorites();
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: favorites.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, index) {
+              final stylist = favorites[index];
+              return _FavoriteCard(
+                stylist: stylist,
+                onTap: () {
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => StylistProfileScreen(stylist: stylist),
                     ),
-                  ),
-                  onUnfavorite: () => _toggleFavorite(stylist.id),
-                );
-              },
-            ),
+                  ).then((_) {
+                    if (!mounted) return;
+
+                    setState(() {
+                      _favoritesFuture = _loadFavorites();
+                    });
+                  });
+                },
+                onUnfavorite: () => _toggleFavorite(stylist.id),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -152,21 +194,6 @@ class _FavoriteCard extends StatelessWidget {
                   Text(
                     stylist.specialty,
                     style: const TextStyle(fontSize: 12, color: AppColors.muted),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: AppColors.gold, size: 13),
-                      const SizedBox(width: 3),
-                      Text(
-                        stylist.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

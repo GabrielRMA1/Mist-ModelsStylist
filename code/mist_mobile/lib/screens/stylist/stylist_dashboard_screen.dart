@@ -1,8 +1,11 @@
-﻿import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
-import '../../data/mock_data.dart';
-import '../../models/service_request.dart';
+import 'package:flutter/material.dart';
+
 import '../../models/booking_status.dart';
+import '../../models/service_request.dart';
+import '../../services/agendamento_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/session_helpers.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/status_badge.dart';
 import 'request_detail_screen.dart';
 import 'stylist_profile_settings_screen.dart';
@@ -11,71 +14,142 @@ class StylistDashboardScreen extends StatefulWidget {
   const StylistDashboardScreen({super.key});
 
   @override
-  State<StylistDashboardScreen> createState() =>
-      _StylistDashboardScreenState();
+  State<StylistDashboardScreen> createState() => _StylistDashboardScreenState();
 }
 
 class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
-  List<ServiceRequest> get _pending =>
-      mockRequests.where((r) => r.status == BookingStatus.pending).toList();
+  final _authService = AuthService();
+  final _agendamentoService = AgendamentoService();
 
-  List<ServiceRequest> get _others =>
-      mockRequests.where((r) => r.status != BookingStatus.pending).toList();
+  late Future<List<ServiceRequest>> _requestsFuture;
+  late Future<AuthSession?> _sessionFuture;
 
-  int get _inProgressCount =>
-      mockRequests.where((r) => r.status == BookingStatus.inProgress).length;
+  @override
+  void initState() {
+    super.initState();
+    _sessionFuture = _authService.currentSession();
+    _requestsFuture = _loadRequests();
+  }
 
-  int get _doneCount =>
-      mockRequests.where((r) => r.status == BookingStatus.done).length;
+  Future<List<ServiceRequest>> _loadRequests() async {
+    final session = await _authService.currentSession();
+    final estilistaId = session?.profileId;
+
+    if (estilistaId == null) {
+      throw Exception('Estilista não encontrado na sessão.');
+    }
+
+    return _agendamentoService.listarPorEstilista(estilistaId);
+  }
+
+  List<ServiceRequest> _pending(List<ServiceRequest> requests) {
+    return requests
+        .where((request) => request.status == BookingStatus.pending)
+        .toList();
+  }
+
+  List<ServiceRequest> _others(List<ServiceRequest> requests) {
+    return requests
+        .where((request) => request.status != BookingStatus.pending)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                const Text('Solicitações pendentes',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.dark)),
-                const SizedBox(height: 10),
-                ..._pending.map((r) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RequestCard(
-                        request: r,
-                        highlighted: true,
-                        onTap: () => _openDetail(r),
-                      ),
-                    )),
-                const SizedBox(height: 8),
-                const Text('Outros atendimentos',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.dark)),
-                const SizedBox(height: 10),
-                ..._others.map((r) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RequestCard(
-                        request: r,
-                        highlighted: false,
-                        onTap: () => _openDetail(r),
-                      ),
-                    )),
-              ],
-            ),
-          ),
-        ],
+      body: FutureBuilder<List<ServiceRequest>>(
+        future: _requestsFuture,
+        builder: (context, snapshot) {
+          final requests = snapshot.data ?? [];
+
+          return Column(
+            children: [
+              _buildHeader(requests),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return _ErrorState(
+                        message: snapshot.error.toString(),
+                        onRetry: () => setState(() {
+                          _requestsFuture = _loadRequests();
+                        }),
+                      );
+                    }
+
+                    final pending = _pending(requests);
+                    final others = _others(requests);
+
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        const Text(
+                          'Solicitações pendentes',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (pending.isEmpty)
+                          const _EmptyText('Nenhuma solicitação pendente.'),
+                        ...pending.map(
+                          (request) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _RequestCard(
+                              request: request,
+                              highlighted: true,
+                              onTap: () => _openDetail(request),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Outros atendimentos',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (others.isEmpty)
+                          const _EmptyText('Nenhum outro atendimento.'),
+                        ...others.map(
+                          (request) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _RequestCard(
+                              request: request,
+                              highlighted: false,
+                              onTap: () => _openDetail(request),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(List<ServiceRequest> requests) {
+    final pendingCount = _pending(requests).length;
+    final acceptedCount = requests
+        .where((request) => request.status == BookingStatus.accepted)
+        .length;
+    final doneCount =
+        requests.where((request) => request.status == BookingStatus.done).length;
+
     return Container(
       color: AppColors.dark,
       child: SafeArea(
@@ -87,19 +161,35 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Bem-vinda de volta',
-                          style: TextStyle(
-                              color: Color(0xFFAAAAAA), fontSize: 12)),
-                      SizedBox(height: 2),
-                      Text('Isabela Moura',
-                          style: TextStyle(
+                  FutureBuilder<AuthSession?>(
+                    future: _sessionFuture,
+                    builder: (context, snapshot) {
+                      final name = sessionName(snapshot.data, fallback: '');
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name.isEmpty
+                                ? 'Bem-vinda de volta'
+                                : 'Bem-vinda de volta',
+                            style: const TextStyle(
+                              color: Color(0xFFAAAAAA),
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            name.isEmpty ? 'Painel do estilista' : name,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 17,
-                              fontWeight: FontWeight.w500)),
-                    ],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   GestureDetector(
                     onTap: () => Navigator.push(
@@ -112,13 +202,23 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
                       width: 38,
                       height: 38,
                       decoration: const BoxDecoration(
-                          color: AppColors.gold, shape: BoxShape.circle),
-                      child: const Center(
-                        child: Text('IM',
-                            style: TextStyle(
+                        color: AppColors.gold,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: FutureBuilder<AuthSession?>(
+                          future: _sessionFuture,
+                          builder: (context, snapshot) {
+                            return Text(
+                              sessionInitials(snapshot.data, fallback: 'E'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
-                                fontWeight: FontWeight.w500)),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
@@ -127,11 +227,11 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _StatCard(value: '${_pending.length}', label: 'Pendentes'),
+                  _StatCard(value: '$pendingCount', label: 'Pendentes'),
                   const SizedBox(width: 10),
-                  _StatCard(value: '$_inProgressCount', label: 'Em andamento'),
+                  _StatCard(value: '$acceptedCount', label: 'Aceitos'),
                   const SizedBox(width: 10),
-                  _StatCard(value: '$_doneCount', label: 'Concluídos'),
+                  _StatCard(value: '$doneCount', label: 'Concluídos'),
                 ],
               ),
             ],
@@ -141,20 +241,23 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
     );
   }
 
-  Future<void> _openDetail(ServiceRequest r) async {
+  Future<void> _openDetail(ServiceRequest request) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => RequestDetailScreen(request: r)),
+      MaterialPageRoute(builder: (_) => RequestDetailScreen(request: request)),
     );
-    setState(() {});
+
+    setState(() {
+      _requestsFuture = _loadRequests();
+    });
   }
 }
 
 class _StatCard extends StatelessWidget {
+  const _StatCard({required this.value, required this.label});
+
   final String value;
   final String label;
-
-  const _StatCard({required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -167,15 +270,19 @@ class _StatCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(value,
-                style: const TextStyle(
-                    color: AppColors.gold,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500)),
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.gold,
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label,
-                style: const TextStyle(
-                    color: Color(0xFF888888), fontSize: 10)),
+            Text(
+              label,
+              style: const TextStyle(color: Color(0xFF888888), fontSize: 10),
+            ),
           ],
         ),
       ),
@@ -184,15 +291,15 @@ class _StatCard extends StatelessWidget {
 }
 
 class _RequestCard extends StatelessWidget {
-  final ServiceRequest request;
-  final bool highlighted;
-  final VoidCallback onTap;
-
   const _RequestCard({
     required this.request,
     required this.highlighted,
     required this.onTap,
   });
+
+  final ServiceRequest request;
+  final bool highlighted;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -215,28 +322,85 @@ class _RequestCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(request.client,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                          color: AppColors.dark)),
+                  child: Text(
+                    request.client,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: AppColors.dark,
+                    ),
+                  ),
                 ),
                 StatusBadge(status: request.status),
               ],
             ),
             const SizedBox(height: 4),
-            Text(request.service,
-                style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+            Text(
+              request.service,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.calendar_today_outlined,
-                    size: 12, color: AppColors.muted),
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 12,
+                  color: AppColors.muted,
+                ),
                 const SizedBox(width: 4),
-                Text('${request.date} às ${request.time}',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.muted)),
+                Text(
+                  '${request.date} às ${request.time}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyText extends StatelessWidget {
+  const _EmptyText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12, color: AppColors.muted),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onRetry,
+              child: const Text('Tentar novamente'),
             ),
           ],
         ),

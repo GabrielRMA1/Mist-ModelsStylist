@@ -1,16 +1,32 @@
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../services/session_helpers.dart';
 import '../../theme/app_theme.dart';
 import '../login_screen.dart';
 import 'client_bookings_screen.dart';
 import 'client_favorites_screen.dart';
+import 'client_home_screen.dart';
 
-class ClientProfileScreen extends StatelessWidget {
+class ClientProfileScreen extends StatefulWidget {
   const ClientProfileScreen({super.key});
 
+  @override
+  State<ClientProfileScreen> createState() => _ClientProfileScreenState();
+}
+
+class _ClientProfileScreenState extends State<ClientProfileScreen> {
+  final _authService = AuthService();
+  late Future<AuthSession?> _sessionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionFuture = _authService.currentSession();
+  }
+
   Future<void> _logout(BuildContext context) async {
-    await AuthService().logout();
+    await _authService.logout();
 
     if (!context.mounted) return;
 
@@ -21,12 +37,33 @@ class ClientProfileScreen extends StatelessWidget {
     );
   }
 
+  void _goBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const ClientHomeScreen()),
+    );
+  }
+
+  void _soon(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label em breve.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          _buildHeader(),
+          FutureBuilder<AuthSession?>(
+            future: _sessionFuture,
+            builder: (context, snapshot) => _buildHeader(snapshot.data),
+          ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -55,19 +92,19 @@ class ClientProfileScreen extends StatelessWidget {
                 _MenuTile(
                   icon: Icons.edit_outlined,
                   label: 'Editar dados pessoais',
-                  onTap: () {},
+                  onTap: () => _soon('Editar dados pessoais'),
                 ),
                 const SizedBox(height: 16),
                 const _SectionLabel('Preferências'),
                 _MenuTile(
                   icon: Icons.notifications_outlined,
                   label: 'Notificações',
-                  onTap: () {},
+                  onTap: () => _soon('Notificações'),
                 ),
                 _MenuTile(
                   icon: Icons.help_outline,
                   label: 'Ajuda e suporte',
-                  onTap: () {},
+                  onTap: () => _soon('Ajuda e suporte'),
                 ),
                 const SizedBox(height: 12),
                 _MenuTile(
@@ -84,28 +121,37 @@ class ClientProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AuthSession? session) {
+    final name = sessionName(session, fallback: 'Cliente');
+    final initials = sessionInitials(session);
+    final subtitle = sessionSubtitle(session);
+
     return Container(
       color: AppColors.dark,
       width: double.infinity,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(8, 8, 20, 24),
           child: Column(
             children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Meu Perfil',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _goBack,
+                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.gold),
                   ),
-                ),
+                  const Text(
+                    'Meu Perfil',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 10),
               Container(
                 width: 72,
                 height: 72,
@@ -113,10 +159,10 @@ class ClientProfileScreen extends StatelessWidget {
                   color: AppColors.gold,
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'MS',
-                    style: TextStyle(
+                    initials,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.w500,
@@ -125,18 +171,18 @@ class ClientProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Mariana Silva',
-                style: TextStyle(
+              Text(
+                name,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
-                'Cliente Mist',
-                style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
               ),
             ],
           ),

@@ -2,17 +2,16 @@ import { prisma } from "../../database/prisma.js";
 
 interface CriarClienteData {
   nome: string;
-  email: string;
-  telefone: string;
+  telefone?: string;
+  userId: number;
 }
+
 interface AtualizarClienteData {
   nome?: string;
-  email?: string;
   telefone?: string;
 }
 
 export class ClienteRepository {
-    
   async criar(data: CriarClienteData) {
     return prisma.cliente.create({
       data,
@@ -31,14 +30,6 @@ export class ClienteRepository {
     return prisma.cliente.findUnique({
       where: {
         id,
-      },
-    });
-  }
-
-  async buscarPorEmail(email: string) {
-    return prisma.cliente.findUnique({
-      where: {
-        email,
       },
     });
   }
