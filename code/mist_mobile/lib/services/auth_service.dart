@@ -1,8 +1,30 @@
-import '/services/api_service.dart';
-import '/services/user_storage_service.dart';
+import 'api_client.dart';
+import 'cookie_storage.dart';
 
 class AuthService {
-  static Future<void> signup({
+  AuthService({ApiClient? apiClient, CookieStorage? cookieStorage})
+      : _apiClient = apiClient ?? ApiClient(),
+        _cookieStorage = cookieStorage ?? CookieStorage();
+
+  final ApiClient _apiClient;
+  final CookieStorage _cookieStorage;
+
+  Future<AuthSession> login({
+    required String email,
+    required String senha,
+  }) async {
+    final data = await _apiClient.post(
+      '/auth/login',
+      body: {
+        'email': email,
+        'senha': senha,
+      },
+    ) as Map<String, dynamic>;
+
+    return AuthSession.fromJson(data);
+  }
+
+  Future<AuthSession> signup({
     required String nome,
     required String email,
     required String senha,
@@ -11,80 +33,66 @@ class AuthService {
     String? especialidade,
     String? descricao,
   }) async {
-    final body = {
+    final body = <String, dynamic>{
       'nome': nome,
       'email': email,
       'senha': senha,
       'role': role,
-      if (telefone != null) 'telefone': telefone,
-      if (especialidade != null) 'especialidade': especialidade,
-      if (descricao != null) 'descricao': descricao,
+      if (telefone != null && telefone.isNotEmpty) 'telefone': telefone,
+      if (especialidade != null && especialidade.isNotEmpty)
+        'especialidade': especialidade,
+      if (descricao != null && descricao.isNotEmpty) 'descricao': descricao,
     };
 
-    final response = await ApiService.post('/auth/signup', body);
+    final data = await _apiClient.post('/auth/signup', body: body)
+        as Map<String, dynamic>;
 
-    if (response['token'] != null) {
-      await ApiService.saveToken(response['token']);
-
-      if (response['user'] != null && response['profile'] != null) {
-        await UserStorageService.saveUser(
-          user: response['user'],
-          profile: response['profile'],
-        );
-      }
-    }
+    return AuthSession.fromJson(data);
   }
 
-  static Future<Map<String, dynamic>> login({
-    required String email,
-    required String senha,
-  }) async {
-    final response = await ApiService.post('/auth/login', {
-      'email': email,
-      'senha': senha,
-    });
-
-    if (response['token'] != null) {
-      await ApiService.saveToken(response['token']);
-
-      if (response['user'] != null && response['profile'] != null) {
-        await UserStorageService.saveUser(
-          user: response['user'],
-          profile: response['profile'],
-        );
-      }
-    }
-
-    return response;
-  }
-
-  static Future<void> logout() async {
+  Future<void> logout() async {
     try {
-      await ApiService.post('/auth/logout', {});
-    } catch (e) {
-      // Mesmo com erro, limpa o token
+      await _apiClient.post('/auth/logout');
     } finally {
-      await ApiService.clearToken();
-      await UserStorageService.clearUser();
+      await _cookieStorage.clear();
     }
   }
 
-  static Future<bool> isAuthenticated() async {
-    await ApiService.loadToken();
-    return ApiService.getToken() != null;
-  }
-
-  static Future<Map<String, dynamic>?> checkAuth() async {
+  Future<AuthSession?> checkAuth() async {
     try {
-      await ApiService.loadToken();
-      if (ApiService.getToken() == null) return null;
-
-      final response = await ApiService.get('/auth/check-auth');
-      return response;
-    } catch (e) {
-      await ApiService.clearToken();
-      await UserStorageService.clearUser();
+      final data = await _apiClient.get('/auth/check-auth') as Map<String, dynamic>;
+      return AuthSession.fromJson(data);
+    } on ApiException {
+      await _cookieStorage.clear();
       return null;
     }
+  }
+}
+
+class AuthSession {
+  const AuthSession({
+    required this.authenticated,
+    required this.userId,
+    required this.role,
+    this.email,
+    this.profile,
+  });
+
+  final bool authenticated;
+  final int userId;
+  final String role;
+  final String? email;
+  final Map<String, dynamic>? profile;
+
+  factory AuthSession.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] as Map<String, dynamic>? ?? {};
+
+    return AuthSession(
+      authenticated: json['authenticated'] as bool? ?? true,
+      userId: user['id'] as int? ?? 0,
+      role: user['role']?.toString() ?? '',
+      email: user['email']?.toString(),
+      profile: json['profile'] as Map<String, dynamic>?,
+    );
   }
 }
