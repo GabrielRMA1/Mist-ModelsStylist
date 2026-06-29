@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -44,11 +45,20 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final headers = await _headers(hasBody: body != null);
 
-    final response = await _httpClient.send(
-      http.Request(method, uri)
-        ..headers.addAll(headers)
-        ..body = body == null ? '' : jsonEncode(body),
-    );
+    late http.StreamedResponse response;
+
+    try {
+      response = await _httpClient.send(
+        http.Request(method, uri)
+          ..headers.addAll(headers)
+          ..body = body == null ? '' : jsonEncode(body),
+      ).timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      throw const ApiException(
+        'Tempo de resposta esgotado. Tente novamente em alguns segundos.',
+        statusCode: 408,
+      );
+    }
 
     final streamedResponse = await http.Response.fromStream(response);
     await _cookieStorage.saveFromSetCookie(streamedResponse.headers['set-cookie']);

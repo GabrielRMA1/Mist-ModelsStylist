@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/booking.dart';
+import '../../models/booking_status.dart';
 import '../../services/agendamento_service.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
@@ -20,11 +23,25 @@ class _ClientBookingsScreenState extends State<ClientBookingsScreen> {
   final _agendamentoService = AgendamentoService();
 
   late Future<List<Booking>> _bookingsFuture;
+  Timer? _pollingTimer;
+  Map<int, BookingStatus> _knownStatuses = {};
+  bool _hasLoadedBookings = false;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
-    _bookingsFuture = _loadBookings();
+    _bookingsFuture = _refreshBookings();
+    _pollingTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _refreshBookingsInBackground(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<List<Booking>> _loadBookings() async {
@@ -36,6 +53,62 @@ class _ClientBookingsScreenState extends State<ClientBookingsScreen> {
     }
 
     return _agendamentoService.listarPorCliente(clienteId);
+  }
+
+  Future<List<Booking>> _refreshBookings({bool notify = false}) async {
+    final bookings = await _loadBookings();
+    _notifyStatusChanges(bookings, notify: notify);
+    return bookings;
+  }
+
+  Future<void> _refreshBookingsInBackground() async {
+    if (_isRefreshing) return;
+
+    _isRefreshing = true;
+
+    try {
+      final bookings = await _refreshBookings(notify: true);
+
+      if (!mounted) return;
+
+      setState(() {
+        _bookingsFuture = Future.value(bookings);
+      });
+    } catch (_) {
+      // Polling silencioso: evita quebrar a UI em falhas momentaneas.
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  void _notifyStatusChanges(
+    List<Booking> bookings, {
+    required bool notify,
+  }) {
+    final nextStatuses = {
+      for (final booking in bookings) booking.id: booking.status,
+    };
+
+    if (notify && _hasLoadedBookings && mounted) {
+      final changedBookings = bookings.where((booking) {
+        final previousStatus = _knownStatuses[booking.id];
+        return previousStatus != null && previousStatus != booking.status;
+      }).toList();
+
+      if (changedBookings.isNotEmpty) {
+        final booking = changedBookings.first;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Seu agendamento de ${booking.service} foi atualizado para ${booking.status.label}.',
+            ),
+          ),
+        );
+      }
+    }
+
+    _knownStatuses = nextStatuses;
+    _hasLoadedBookings = true;
   }
 
   @override
@@ -59,7 +132,7 @@ class _ClientBookingsScreenState extends State<ClientBookingsScreen> {
             return _ErrorState(
               message: snapshot.error.toString(),
               onRetry: () => setState(() {
-                _bookingsFuture = _loadBookings();
+                _bookingsFuture = _refreshBookings();
               }),
             );
           }
@@ -81,7 +154,16 @@ class _ClientBookingsScreenState extends State<ClientBookingsScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, index) {
               final booking = bookings[index];
-              return _BookingCard(booking: booking);
+              return _BookingCard(
+                booking: booking,
+                onChanged: () {
+                  if (!mounted) return;
+
+                  setState(() {
+                    _bookingsFuture = _refreshBookings();
+                  });
+                },
+              );
             },
           );
         },
@@ -103,9 +185,10 @@ class _ClientBookingsScreenState extends State<ClientBookingsScreen> {
 }
 
 class _BookingCard extends StatelessWidget {
-  const _BookingCard({required this.booking});
+  const _BookingCard({required this.booking, required this.onChanged});
 
   final Booking booking;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -159,12 +242,14 @@ class _BookingCard extends StatelessWidget {
           const Divider(height: 1, color: AppColors.border),
           const SizedBox(height: 10),
           OutlinedButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BookingDetailScreen(booking: booking),
-              ),
-            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BookingDetailScreen(booking: booking),
+                ),
+              ).then((_) => onChanged());
+            },
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               minimumSize: Size.zero,

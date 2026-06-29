@@ -228,7 +228,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
             ),
             const SizedBox(height: 4),
             DropdownButtonFormField<String>(
-              value: _selectedService,
+              initialValue: _selectedService,
               hint: const Text('Selecione...'),
               items: _services
                   .map((service) => DropdownMenuItem(

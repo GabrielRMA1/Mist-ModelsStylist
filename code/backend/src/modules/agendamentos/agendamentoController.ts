@@ -29,11 +29,15 @@ interface EstilistaParams {
 
 export class AgendamentoController {
   private agendamentoService: AgendamentoService;
-  private messagingService: AgendamentoMessagingService;
+  private messagingService: AgendamentoMessagingService | null;
 
   constructor() {
     this.agendamentoService = new AgendamentoService();
-    this.messagingService = new AgendamentoMessagingService();
+    try {
+      this.messagingService = new AgendamentoMessagingService();
+    } catch {
+      this.messagingService = null;
+    }
   }
 
   criar = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -41,22 +45,27 @@ export class AgendamentoController {
       const body = request.body as CriarAgendamentoBody;
       const agendamento = await this.agendamentoService.criar(body);
 
-      try {
-        await this.messagingService.publicarAgendamentoPrioritario({
-          agendamentoId: agendamento.id,
-          clienteId: agendamento.clienteId,
-          estilistaId: agendamento.estilistaId,
-          data: new Date(agendamento.data),
-          tipoServico: agendamento.tipoServico,
-          prioridade: 1,
-          createdAt: agendamento.createdAt,
+      if (this.messagingService) {
+        setImmediate(() => {
+          this.messagingService
+            ?.publicarAgendamentoPrioritario({
+              agendamentoId: agendamento.id,
+              clienteId: agendamento.clienteId,
+              estilistaId: agendamento.estilistaId,
+              data: new Date(agendamento.data),
+              tipoServico: agendamento.tipoServico,
+              prioridade: 1,
+              createdAt: agendamento.createdAt,
+            })
+            .then(() => {
+              request.log.info(`Agendamento ${agendamento.id} enviado para fila de prioridade`);
+            })
+            .catch((messagingError) => {
+              request.log.error(
+                `Erro ao publicar agendamento ${agendamento.id} na fila de prioridade: ${messagingError instanceof Error ? messagingError.message : 'Erro desconhecido'}`
+              );
+            });
         });
-
-        request.log.info(`Agendamento ${agendamento.id} enviado para fila de prioridade`);
-      } catch (messagingError) {
-        request.log.error(
-          `Erro ao publicar agendamento ${agendamento.id} na fila de prioridade: ${messagingError instanceof Error ? messagingError.message : 'Erro desconhecido'}`
-        );
       }
 
       return reply.status(201).send(agendamento);
@@ -138,20 +147,25 @@ export class AgendamentoController {
 
       const agendamento = await this.agendamentoService.atualizarStatus(idNum, body);
 
-      try {
-        await this.messagingService.publicarAtualizacaoStatus({
-          agendamentoId: idNum,
-          status: body.status,
-          timestamp: new Date(),
-        });
+      if (this.messagingService) {
+        setImmediate(() => {
+          this.messagingService
+            ?.publicarAtualizacaoStatus({
+              agendamentoId: idNum,
+              status: body.status,
+              timestamp: new Date(),
+            })
+            .then(() => {
+              request.log.info(`Status do agendamento ${idNum} atualizado para: ${body.status}`);
+            })
+            .catch((messagingError) => {
+              const errorMessage = messagingError instanceof Error
+                ? messagingError.message
+                : 'Erro desconhecido';
 
-        request.log.info(`Status do agendamento ${idNum} atualizado para: ${body.status}`);
-      } catch (messagingError) {
-        const errorMessage = messagingError instanceof Error 
-          ? messagingError.message 
-          : 'Erro desconhecido';
-        
-        request.log.error(`Erro ao publicar status do agendamento ${idNum}: ${errorMessage}`);
+              request.log.error(`Erro ao publicar status do agendamento ${idNum}: ${errorMessage}`);
+            });
+        });
       }
 
       return reply.status(200).send(agendamento);

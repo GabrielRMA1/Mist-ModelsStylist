@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/booking_status.dart';
@@ -23,12 +25,26 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
 
   late Future<List<ServiceRequest>> _requestsFuture;
   late Future<AuthSession?> _sessionFuture;
+  Timer? _pollingTimer;
+  Set<int> _knownRequestIds = {};
+  bool _hasLoadedRequests = false;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _sessionFuture = _authService.currentSession();
-    _requestsFuture = _loadRequests();
+    _requestsFuture = _refreshRequests();
+    _pollingTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _refreshRequestsInBackground(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<List<ServiceRequest>> _loadRequests() async {
@@ -40,6 +56,60 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
     }
 
     return _agendamentoService.listarPorEstilista(estilistaId);
+  }
+
+  Future<List<ServiceRequest>> _refreshRequests({bool notify = false}) async {
+    final requests = await _loadRequests();
+    _notifyNewRequests(requests, notify: notify);
+    return requests;
+  }
+
+  Future<void> _refreshRequestsInBackground() async {
+    if (_isRefreshing) return;
+
+    _isRefreshing = true;
+
+    try {
+      final requests = await _refreshRequests(notify: true);
+
+      if (!mounted) return;
+
+      setState(() {
+        _requestsFuture = Future.value(requests);
+      });
+    } catch (_) {
+      // Polling silencioso: a tela principal continua exibindo o ultimo estado.
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  void _notifyNewRequests(
+    List<ServiceRequest> requests, {
+    required bool notify,
+  }) {
+    final requestIds = requests.map((request) => request.id).toSet();
+    final newPendingRequests = requests.where(
+      (request) =>
+          !_knownRequestIds.contains(request.id) &&
+          request.status == BookingStatus.pending,
+    );
+
+    if (notify && _hasLoadedRequests && mounted && newPendingRequests.isNotEmpty) {
+      final count = newPendingRequests.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count == 1
+                ? 'Nova solicitacao de agendamento recebida.'
+                : '$count novas solicitacoes de agendamento recebidas.',
+          ),
+        ),
+      );
+    }
+
+    _knownRequestIds = requestIds;
+    _hasLoadedRequests = true;
   }
 
   List<ServiceRequest> _pending(List<ServiceRequest> requests) {
@@ -76,7 +146,7 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
                       return _ErrorState(
                         message: snapshot.error.toString(),
                         onRetry: () => setState(() {
-                          _requestsFuture = _loadRequests();
+                          _requestsFuture = _refreshRequests();
                         }),
                       );
                     }
@@ -247,8 +317,10 @@ class _StylistDashboardScreenState extends State<StylistDashboardScreen> {
       MaterialPageRoute(builder: (_) => RequestDetailScreen(request: request)),
     );
 
+    if (!mounted) return;
+
     setState(() {
-      _requestsFuture = _loadRequests();
+      _requestsFuture = _refreshRequests();
     });
   }
 }

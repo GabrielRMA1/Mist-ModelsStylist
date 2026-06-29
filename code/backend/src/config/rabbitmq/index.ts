@@ -22,7 +22,9 @@ class RabbitMQConfig {
 
   async connect(): Promise<void> {
     try {
-      this.connection = await amqp.connect(this.url);
+      this.connection = await amqp.connect(this.url, {
+        timeout: 3000,
+      });
       this.channel = await this.connection.createChannel();
 
       this.isConnected = true;
