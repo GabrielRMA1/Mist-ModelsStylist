@@ -1,17 +1,31 @@
-# mist_mobile
+# Mist Mobile
 
-A new Flutter project.
+Aplicativo Flutter do projeto Mist - Models Stylist.
 
-## Getting Started
+Este projeto contem os fluxos do cliente e do prestador/estilista em uma unica aplicacao. A navegacao e direcionada conforme o perfil autenticado (`CLIENTE` ou `ESTILISTA`), reutilizando tema, componentes, modelos e servicos HTTP.
 
-This project is a starting point for a Flutter application.
+## Estrutura principal
 
-A few resources to get you started if this is your first Flutter project:
+- `lib/screens/client`: telas do cliente.
+- `lib/screens/stylist`: telas do estilista/prestador.
+- `lib/screens/shared`: telas compartilhadas.
+- `lib/services`: integracao com a API e persistencia de sessao.
+- `lib/models`: modelos usados pela interface.
+- `lib/widgets`: componentes visuais reutilizaveis.
+- `lib/theme`: tema visual da aplicacao.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Execucao
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Instale as dependencias:
+
+```bash
+flutter pub get
+```
+
+Execute:
+
+```bash
+flutter run
+```
+
+Por padrao, a API e acessada em `http://10.0.2.2:3333`, configurado em `lib/services/api_client.dart`. Esse endereco e indicado para emulador Android. Em dispositivo fisico, use o IP da maquina onde o backend esta rodando.
